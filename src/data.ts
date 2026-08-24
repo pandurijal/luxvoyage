@@ -9,7 +9,7 @@ export const packages: Package[] = [
     description: 'Immerse yourself in the breathtaking beauty of the Swiss Alps. This curated experience offers unparalleled luxury, combining thrilling winter sports with the warmth of a private, fully-staffed chalet in the shadow of the Matterhorn.',
     price: 125000000,
     duration: '7 Days, 6 Nights',
-    heroImage: 'https://images.unsplash.com/photo-1531366936337-778920a15639?q=80&w=2574&auto=format&fit=crop',
+    heroImage: 'https://images.unsplash.com/photo-1520114881075-f5f84ce22c60?q=80&w=2670&auto=format&fit=crop',
     gallery: [
       'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=2670&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1522792065601-5e6eaf661bfd?q=80&w=2574&auto=format&fit=crop',
@@ -202,4 +202,13 @@ export const testimonials = [
     rating: 5,
     image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=2574&auto=format&fit=crop'
   }
+];
+
+export const galleryImages = [
+  'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=2621&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1515238152791-8216bfdf89a7?q=80&w=2672&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1534008897995-27a23e859048?q=80&w=2574&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1496588152823-86ff7695e68f?q=80&w=2670&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=2670&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1512453979438-51f696684188?q=80&w=2670&auto=format&fit=crop'
 ];

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ArrowRight, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { packages, formatIDR, testimonials } from '../data';
+import { packages, formatIDR, testimonials, galleryImages } from '../data';
 import { ViewState } from '../types';
 
 interface HomeProps {
@@ -173,6 +173,40 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section className="py-24 px-6 lg:px-12 bg-[#FDFBF7]">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+            <div>
+              <h2 className="text-sm tracking-widest uppercase text-slate-500 mb-4">Visual Diary</h2>
+              <h3 className="text-4xl md:text-5xl font-light text-slate-900">Moments of Wonder</h3>
+            </div>
+            <p className="text-slate-600 font-light max-w-md leading-relaxed">
+              A glimpse into the extraordinary memories we craft for our clients across the globe. From private peaks to secluded atolls.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[250px]">
+            {galleryImages.map((img, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+                className={`relative overflow-hidden rounded-2xl group cursor-pointer ${
+                  i === 0 ? 'md:col-span-2 md:row-span-2' : 
+                  i === 3 ? 'md:col-span-2' : ''
+                }`}
+              >
+                <img src={img} alt={`Gallery visual ${i + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-transparent transition-colors duration-500"></div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
