@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, MessageSquare, AlertCircle } from 'lucide-react';
 import { packages, formatIDR } from '../data';
-import { ViewState } from '../types';
+import { ViewState, Order } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface BookingFlowProps {
   packageId: string;
   onNavigate: (view: ViewState) => void;
+  onOrderCreated?: (order: Order) => void;
 }
 
-export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate }) => {
+export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate, onOrderCreated }) => {
   const pkg = packages.find(p => p.id === packageId);
   const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', date: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!pkg) return null;
 
@@ -28,12 +31,34 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate 
     );
   };
 
-  const handleCompleteBooking = () => {
+  const handleCompleteBooking = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
+    setSubmitError(null);
+
+    const selectedUpgradeDetails = pkg.upgrades.filter(u => selectedUpgrades.includes(u.id));
+
+    const order: Order = {
+      package_id: pkg.id,
+      package_title: pkg.title,
+      customer_name: formData.name,
+      customer_email: formData.email,
+      customer_phone: formData.phone,
+      travel_date: formData.date,
+      selected_upgrades: selectedUpgradeDetails,
+      total_price: totalPrice,
+      status: 'pending',
+    };
+
+    const { error } = await supabase.from('orders').insert(order);
+
+    if (error) {
+      setSubmitError(error.message);
       setIsSubmitting(false);
-      onNavigate({ name: 'dashboard' });
-    }, 800);
+      return;
+    }
+
+    onOrderCreated?.(order);
+    onNavigate({ name: 'dashboard' });
   };
 
   return (
@@ -137,6 +162,16 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate 
                 </div>
               </div>
             </section>
+
+            {submitError && (
+              <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-900 mb-1">Unable to submit reservation</p>
+                  <p className="text-sm text-red-700 font-light">{submitError}</p>
+                </div>
+              </div>
+            )}
 
             <button 
               disabled={!formData.date || !formData.name || !formData.email || !formData.phone || isSubmitting}

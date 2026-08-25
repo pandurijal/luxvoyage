@@ -10,10 +10,11 @@ import { PackageDetail } from './components/PackageDetail';
 import { BookingFlow } from './components/BookingFlow';
 import { Dashboard } from './components/Dashboard';
 import { CustomRequest } from './components/CustomRequest';
-import { ViewState } from './types';
+import { ViewState, Order } from './types';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>({ name: 'home' });
+  const [latestOrder, setLatestOrder] = useState<Order | null>(null);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -27,9 +28,15 @@ export default function App() {
       case 'package':
         return <PackageDetail packageId={currentView.packageId} onNavigate={setCurrentView} />;
       case 'booking':
-        return <BookingFlow packageId={currentView.packageId} onNavigate={setCurrentView} />;
+        return (
+          <BookingFlow
+            packageId={currentView.packageId}
+            onNavigate={setCurrentView}
+            onOrderCreated={setLatestOrder}
+          />
+        );
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentView} />;
+        return <Dashboard order={latestOrder} onNavigate={setCurrentView} />;
       case 'custom_request':
         return <CustomRequest onNavigate={setCurrentView} />;
       default:

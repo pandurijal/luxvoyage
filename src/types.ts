@@ -42,3 +42,19 @@ export type ViewState =
   | { name: 'booking'; packageId: string }
   | { name: 'dashboard' }
   | { name: 'custom_request' };
+
+export type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface Order {
+  id?: string;
+  package_id: string;
+  package_title: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  travel_date: string;
+  selected_upgrades: Upgrade[];
+  total_price: number;
+  status: OrderStatus;
+  created_at?: string;
+}
