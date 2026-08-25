@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ArrowRight, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ArrowRight, Star, ChevronLeft, ChevronRight, Mail, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { packages, formatIDR, testimonials, galleryImages } from '../data';
 import { ViewState } from '../types';
@@ -10,6 +10,8 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
 
   const nextTestimonial = () => {
     setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
@@ -17,6 +19,13 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
   const prevTestimonial = () => {
     setCurrentTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
+  };
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail.trim()) {
+      setNewsletterSubmitted(true);
+    }
   };
 
   return (
@@ -233,6 +242,92 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=2694&auto=format&fit=crop" className="w-full h-64 object-cover rounded-2xl" alt="Bespoke luxury 1" />
             <img src="https://images.unsplash.com/photo-1517400508447-f8dd518b86db?q=80&w=2670&auto=format&fit=crop" className="w-full h-64 object-cover rounded-2xl mt-8" alt="Bespoke luxury 2" />
           </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-24 px-6 lg:px-12 bg-[#FDFBF7]">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900/5 mb-8">
+              <Mail className="w-7 h-7 text-slate-900" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-sm tracking-widest uppercase text-slate-500 mb-4">Stay Connected</h2>
+            <h3 className="text-4xl md:text-5xl font-light text-slate-900 mb-6">Private Invitations</h3>
+            <p className="text-slate-600 font-light text-lg leading-relaxed max-w-2xl mx-auto mb-12">
+              Be the first to receive early access to new seasonal collections, exclusive partner offers, and curated travel inspirations — delivered discreetly to your inbox. No spam, ever.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="max-w-xl mx-auto"
+          >
+            <AnimatePresence mode="wait">
+              {!newsletterSubmitted ? (
+                <motion.form
+                  key="form"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4 }}
+                  onSubmit={handleNewsletterSubmit}
+                  className="flex flex-col sm:flex-row gap-4"
+                >
+                  <div className="flex-1 relative">
+                    <input
+                      type="email"
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
+                      placeholder="Your private email"
+                      required
+                      className="w-full px-6 py-4 rounded-full border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-light focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/5 transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-slate-900 text-white px-8 py-4 rounded-full font-medium tracking-widest uppercase text-sm hover:bg-slate-800 transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    Subscribe <ArrowRight className="w-4 h-4" />
+                  </button>
+                </motion.form>
+              ) : (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-full px-8 py-6 shadow-sm"
+                >
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50">
+                    <Check className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-slate-900">Welcome aboard.</p>
+                    <p className="text-sm text-slate-500 font-light">Check your inbox for a private confirmation.</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-xs tracking-widest uppercase text-slate-400 mt-8"
+          >
+            Trusted by 12,000+ discerning travelers worldwide
+          </motion.p>
         </div>
       </section>
     </div>
