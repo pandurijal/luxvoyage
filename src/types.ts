@@ -42,7 +42,8 @@ export type ViewState =
   | { name: 'booking'; packageId: string }
   | { name: 'dashboard' }
   | { name: 'custom_request' }
-  | { name: 'admin' };
+  | { name: 'admin' }
+  | { name: 'payment_return'; orderId: string };
 
 export type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
 

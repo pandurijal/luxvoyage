@@ -11,16 +11,34 @@ import { BookingFlow } from './components/BookingFlow';
 import { Dashboard } from './components/Dashboard';
 import { CustomRequest } from './components/CustomRequest';
 import { Admin } from './components/Admin';
+import { PaymentReturn } from './components/PaymentReturn';
 import { ViewState, Order } from './types';
 
+function readHashRoute(hash: string): ViewState | null {
+  const match = hash.match(/^#\/payment_return\/(.+)$/);
+  if (match) return { name: 'payment_return', orderId: match[1] };
+  return null;
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewState>({ name: 'home' });
+  const [currentView, setCurrentView] = useState<ViewState>(() => {
+    const fromHash = readHashRoute(window.location.hash);
+    return fromHash ?? { name: 'home' };
+  });
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
 
-  // Scroll to top on view change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentView.name]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const fromHash = readHashRoute(window.location.hash);
+      if (fromHash) setCurrentView(fromHash);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const renderView = () => {
     switch (currentView.name) {
@@ -42,6 +60,8 @@ export default function App() {
         return <CustomRequest onNavigate={setCurrentView} />;
       case 'admin':
         return <Admin onNavigate={setCurrentView} />;
+      case 'payment_return':
+        return <PaymentReturn orderId={currentView.orderId} onNavigate={setCurrentView} />;
       default:
         return <Home onNavigate={setCurrentView} />;
     }

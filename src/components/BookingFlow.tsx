@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, MessageSquare, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, MessageSquare, AlertCircle, CreditCard, Loader2 } from 'lucide-react';
 import { packages, formatIDR } from '../data';
 import { ViewState, Order } from '../types';
 import { supabase } from '../lib/supabase';
+import { createInquiry, PaymentMethodCode } from '../lib/duitku';
 
 interface BookingFlowProps {
   packageId: string;
@@ -10,23 +11,28 @@ interface BookingFlowProps {
   onOrderCreated?: (order: Order) => void;
 }
 
+const PAYMENT_METHOD: PaymentMethodCode = 'BC';
+
 export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate, onOrderCreated }) => {
   const pkg = packages.find(p => p.id === packageId);
   const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', date: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
 
   if (!pkg) return null;
 
   const totalUpgrades = pkg.upgrades
     .filter(u => selectedUpgrades.includes(u.id))
     .reduce((sum, u) => sum + u.price, 0);
-    
+
   const totalPrice = pkg.price + totalUpgrades;
 
   const handleUpgradeToggle = (id: string) => {
-    setSelectedUpgrades(prev => 
+    setSelectedUpgrades(prev =>
       prev.includes(id) ? prev.filter(u => u !== id) : [...prev, id]
     );
   };
@@ -49,16 +55,46 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
       status: 'pending',
     };
 
-    const { error } = await supabase.from('orders').insert(order);
+    const { data, error } = await supabase
+      .from('orders')
+      .insert(order)
+      .select('*')
+      .single();
 
-    if (error) {
-      setSubmitError(error.message);
+    if (error || !data) {
+      setSubmitError(error?.message ?? 'Failed to create order');
       setIsSubmitting(false);
       return;
     }
 
-    onOrderCreated?.(order);
-    onNavigate({ name: 'dashboard' });
+    onOrderCreated?.(data);
+    setCreatedOrder(data);
+    setIsSubmitting(false);
+  };
+
+  const handlePayNow = async () => {
+    if (!createdOrder?.id) return;
+    setIsStartingPayment(true);
+    setPaymentError(null);
+
+    try {
+      const returnUrl = `${window.location.origin}${window.location.pathname}#/payment_return/${createdOrder.id}`;
+      const inquiry = await createInquiry({
+        merchantOrderId: createdOrder.id,
+        paymentAmount: totalPrice,
+        paymentMethod: PAYMENT_METHOD,
+        productDetails: pkg.title,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        returnUrl,
+      });
+
+      window.location.href = inquiry.paymentUrl;
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Failed to start payment');
+      setIsStartingPayment(false);
+    }
   };
 
   return (
@@ -79,14 +115,64 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
           <div className="lg:col-span-7 space-y-12">
-            
+            {createdOrder ? (
+              <section className="space-y-6">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-light text-emerald-900 mb-1">Reservation Received</h2>
+                      <p className="text-emerald-800 font-light">
+                        Reference <span className="font-mono text-sm">{createdOrder.id?.slice(0, 8)}</span> — secure your spot by completing payment now, or pay later via your dashboard.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {paymentError && (
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-900 mb-1">Payment could not be started</p>
+                      <p className="text-sm text-red-700 font-light">{paymentError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  disabled={isStartingPayment}
+                  onClick={handlePayNow}
+                  className="w-full bg-slate-900 text-white py-4 rounded-full tracking-widest uppercase text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isStartingPayment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Connecting to Duitku...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" /> Pay Now via Duitku
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => onNavigate({ name: 'dashboard' })}
+                  className="w-full bg-white text-slate-900 py-4 rounded-full tracking-widest uppercase text-sm font-medium border border-slate-300 hover:border-slate-900 transition-colors"
+                >
+                  Skip — Pay Later from Dashboard
+                </button>
+              </section>
+            ) : (
+              <>
             <section className="space-y-4">
               <div>
                 <h2 className="text-xl font-medium text-slate-900 mb-1">Preferred Start Date</h2>
                 <p className="text-sm text-slate-500 font-light">Choose your ideal departure date.</p>
               </div>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
                 className="w-full bg-white border border-slate-300 rounded-xl px-6 py-4 outline-none focus:border-slate-900 transition-colors text-lg"
@@ -101,7 +187,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
                 </div>
                 <div className="space-y-3">
                   {pkg.upgrades.map(upgrade => (
-                    <div 
+                    <div
                       key={upgrade.id}
                       onClick={() => handleUpgradeToggle(upgrade.id)}
                       className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex gap-4 ${
@@ -132,8 +218,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium tracking-widest uppercase text-slate-500 mb-2">Full Name (As in Passport)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-white border border-slate-300 rounded-xl px-6 py-4 outline-none focus:border-slate-900 transition-colors"
@@ -142,8 +228,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
                 </div>
                 <div>
                   <label className="block text-xs font-medium tracking-widest uppercase text-slate-500 mb-2">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="w-full bg-white border border-slate-300 rounded-xl px-6 py-4 outline-none focus:border-slate-900 transition-colors"
@@ -152,8 +238,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
                 </div>
                 <div>
                   <label className="block text-xs font-medium tracking-widest uppercase text-slate-500 mb-2">WhatsApp Number</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="w-full bg-white border border-slate-300 rounded-xl px-6 py-4 outline-none focus:border-slate-900 transition-colors"
@@ -173,13 +259,15 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ packageId, onNavigate,
               </div>
             )}
 
-            <button 
+            <button
               disabled={!formData.date || !formData.name || !formData.email || !formData.phone || isSubmitting}
               onClick={handleCompleteBooking}
               className="w-full bg-slate-900 text-white py-4 rounded-full tracking-widest uppercase text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? 'Confirming...' : 'Confirm Reservation'} <ChevronRight className="w-4 h-4" />
             </button>
+              </>
+            )}
           </div>
 
           <div className="lg:col-span-5">

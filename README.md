@@ -73,6 +73,9 @@ cp .env.example .env
 | ----------------- | ------------------------------------------------------------------------- |
 | `GEMINI_API_KEY`  | API key untuk Google Gemini AI (dapatkan di Google AI Studio)             |
 | `APP_URL`         | URL tempat aplikasi di-host (digunakan untuk link referensial & callback) |
+| `VITE_DUITKU_MERCHANT_CODE` | Merchant Code Duitku sandbox (format `DXXXX`) |
+| `VITE_DUITKU_API_KEY` | API key Duitku sandbox (32+ char) |
+| `VITE_DUITKU_TEST_AMOUNT` | (Opsional) Override amount untuk sandbox test. Default `10000` IDR |
 
 ## Menjalankan Aplikasi
 
@@ -149,3 +152,56 @@ Untuk berkontribusi pada proyek ini:
 ## Lisensi
 
 © 2026 LuxVoyage. All rights reserved.
+
+---
+
+## Integrasi Payment Gateway (Duitku Sandbox)
+
+Sample integration dengan Duitku payment gateway (sandbox only).
+
+### ⚠️ Peringatan Keamanan (Dummy Only)
+
+API key Duitku ditaruh di frontend bundle (`VITE_DUITKU_*`). Ini **HANYA untuk sample/demo**. Untuk production, API key harus disimpan di server dan semua request Duitku harus di-proxy via backend (Express, Cloudflare Worker, dll).
+
+### Catatan Sample
+
+- Tidak ada kolom `payment_status` di database — order tetap berstatus `pending` setelah user bayar di Duitku. Sample ini cuma menunjukkan flow inquiry → redirect → return URL → status check.
+- Order reference yang dipakai Duitku = `order.id` dari Supabase (auto-generated UUID).
+
+### Setup Akun Sandbox
+
+1. Daftar di https://passport.duitku.com/merchant
+2. Login → My Project → Add Project (pilih environment **Sandbox**)
+3. Edit project untuk lihat **Merchant Code** dan **API Key**
+4. Edit `.env` (sudah ada dummy values):
+   ```
+   VITE_DUITKU_MERCHANT_CODE=D0000            # ganti dengan kode asli
+   VITE_DUITKU_API_KEY=sandbox-api-key-...    # ganti dengan key asli
+   VITE_DUITKU_TEST_AMOUNT=10000              # boleh dibiarkan
+   ```
+
+### Flow Pembayaran
+
+1. User isi form `BookingFlow.tsx` → klik **Confirm Reservation**
+2. Order dibuat di Supabase dengan `status='pending'`
+3. User klik **Pay Now via Duitku** → frontend call `/v2/inquiry` → redirect ke halaman Duitku
+4. User bayar di halaman Duitku (VA, e-wallet, credit card)
+5. Duitku redirect balik ke `/#/payment_return/<orderId>`
+6. `PaymentReturn.tsx` call `transactionStatus` API → tampilkan success/pending/failed (read-only, tidak update DB)
+
+### CORS di Development
+
+Duitku tidak mengirim `Access-Control-Allow-Origin`, jadi request dari browser langsung akan diblokir. Untuk development, **Vite proxy** sudah dikonfigurasi di `vite.config.ts` untuk route `/duitku-api/*` ke `https://sandbox.duitku.com`.
+
+### Untuk Production
+
+1. **WAJIB** pakai backend proxy (jangan expose API key di frontend)
+2. Ganti base URL di `src/lib/duitku.ts` dari `/duitku-api/webapi` ke endpoint backend Anda
+3. Konfirmasi limit amount Duitku (paket LuxVoyage 85-125jt perlu klarifikasi)
+4. Setup callback URL yang public untuk real-time notification (opsional, sudah ada fallback returnUrl + status check)
+5. Tambah kolom `payment_status` di tabel `orders` jika perlu persist payment state
+
+### Referensi
+
+- Duitku Docs: https://docs.duitku.com/payment-gateway/api-browser/
+- Sandbox Test Cards: `4000 0000 0000 0044` (VISA) / `5500 0000 0000 0004` (MASTERCARD), exp `03/33`, CVV `123`
