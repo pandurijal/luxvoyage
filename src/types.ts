@@ -36,12 +36,13 @@ export interface Package {
   itinerary: ItineraryDay[];
 }
 
-export type ViewState = 
+export type ViewState =
   | { name: 'home' }
   | { name: 'package'; packageId: string }
   | { name: 'booking'; packageId: string }
   | { name: 'dashboard' }
-  | { name: 'custom_request' };
+  | { name: 'custom_request' }
+  | { name: 'admin' };
 
 export type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
 

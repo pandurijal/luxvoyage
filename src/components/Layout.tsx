@@ -1,6 +1,9 @@
 import React from 'react';
-import { Compass, Menu, X, User } from 'lucide-react';
+import { Compass, Menu, X, User, LogOut } from 'lucide-react';
 import { ViewState } from '../types';
+import { AuthModal } from './AuthModal';
+import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +13,30 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [user, setUser] = React.useState<SupabaseUser | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user ?? null);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) setUser(session?.user ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setIsMobileMenuOpen(false);
+  };
 
   const navigateAndClose = (view: ViewState) => {
     onNavigate(view);
@@ -31,19 +58,50 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-10">
-            <button 
+            <button
               onClick={() => navigateAndClose({ name: 'custom_request' })}
               className="text-sm tracking-widest uppercase hover:text-slate-500 transition-colors"
             >
               Custom Escapes
             </button>
-            <button 
-              onClick={() => navigateAndClose({ name: 'dashboard' })}
-              className="flex items-center gap-2 text-sm tracking-widest uppercase bg-slate-900 text-white px-6 py-3 rounded-full hover:bg-slate-800 transition-colors"
+            <button
+              onClick={() => navigateAndClose({ name: 'admin' })}
+              className="text-xs tracking-widest uppercase text-slate-400 hover:text-slate-700 transition-colors"
             >
-              <User className="w-4 h-4" />
-              Client Portal
+              Admin
             </button>
+            {user ? (
+              <>
+                <button
+                  onClick={() => navigateAndClose({ name: 'dashboard' })}
+                  className="flex items-center gap-2 text-sm tracking-widest uppercase hover:text-slate-500 transition-colors"
+                  title={user.email ?? 'Account'}
+                >
+                  <span className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-medium">
+                    {(user.email ?? '?').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="max-w-[10rem] truncate font-normal normal-case tracking-normal text-slate-600 text-sm">
+                    {user.email}
+                  </span>
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-xs tracking-widest uppercase text-slate-400 hover:text-slate-900 transition-colors"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-2 text-sm tracking-widest uppercase bg-slate-900 text-white px-6 py-3 rounded-full hover:bg-slate-800 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                Sign In
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -58,19 +116,50 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
         {/* Mobile Nav */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-24 left-0 w-full bg-[#FDFBF7] border-b border-slate-200/50 flex flex-col px-6 py-8 gap-6 shadow-xl">
-            <button 
+            <button
               onClick={() => navigateAndClose({ name: 'custom_request' })}
               className="text-left text-lg tracking-widest uppercase hover:text-slate-500 transition-colors"
             >
               Custom Escapes
             </button>
-            <button 
-              onClick={() => navigateAndClose({ name: 'dashboard' })}
-              className="flex items-center justify-center gap-2 text-lg tracking-widest uppercase bg-slate-900 text-white px-6 py-4 rounded-full"
+            <button
+              onClick={() => navigateAndClose({ name: 'admin' })}
+              className="text-left text-sm tracking-widest uppercase text-slate-400 hover:text-slate-700 transition-colors"
             >
-              <User className="w-5 h-5" />
-              Client Portal
+              Admin
             </button>
+            {user ? (
+              <>
+                <div className="text-xs text-slate-500 normal-case tracking-normal font-light">
+                  Signed in as <span className="text-slate-900 font-medium">{user.email}</span>
+                </div>
+                <button
+                  onClick={() => navigateAndClose({ name: 'dashboard' })}
+                  className="flex items-center justify-center gap-2 text-lg tracking-widest uppercase bg-slate-900 text-white px-6 py-4 rounded-full"
+                >
+                  <User className="w-5 h-5" />
+                  Client Portal
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center justify-center gap-2 text-sm tracking-widest uppercase border border-slate-300 text-slate-700 px-6 py-4 rounded-full"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsAuthModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 text-lg tracking-widest uppercase bg-slate-900 text-white px-6 py-4 rounded-full"
+              >
+                <User className="w-5 h-5" />
+                Sign In
+              </button>
+            )}
           </div>
         )}
       </nav>
@@ -108,6 +197,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
           </div>
         </div>
       </footer>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { PackageDetail } from './components/PackageDetail';
 import { BookingFlow } from './components/BookingFlow';
 import { Dashboard } from './components/Dashboard';
 import { CustomRequest } from './components/CustomRequest';
+import { Admin } from './components/Admin';
 import { ViewState, Order } from './types';
 
 export default function App() {
@@ -39,6 +40,8 @@ export default function App() {
         return <Dashboard order={latestOrder} onNavigate={setCurrentView} />;
       case 'custom_request':
         return <CustomRequest onNavigate={setCurrentView} />;
+      case 'admin':
+        return <Admin onNavigate={setCurrentView} />;
       default:
         return <Home onNavigate={setCurrentView} />;
     }
